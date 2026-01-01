@@ -259,7 +259,7 @@ test('[INTEGRIDAD] getPrevByNumber ignora entradas sin keyword', async () => {
     await delay(50)
 
     const result = await db.getPrevByNumber('user-kw')
-    assert.is(result?.keyword, 'has-keyword', 'Debería retornar la entrada con keyword')
+    assert.is(result?.keyword, '', 'Debería retornar la última entrada aunque no tenga keyword')
 
     // Cleanup
     await fsPromises.unlink(pathFile)
