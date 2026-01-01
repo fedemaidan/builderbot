@@ -51,6 +51,10 @@ class MongoAdapter extends MemoryDB {
     async getState(from: string): Promise<any> {
         return await this.db.collection('state').findOne({ from })
     }
+
+    async deleteState(from: string): Promise<void> {
+        await this.db.collection('state').deleteOne({ from })
+    }
 }
 
 export { MongoAdapter }

@@ -35,6 +35,10 @@ class MemoryDB {
     async getState(from: string): Promise<any> {
         return this.listState.find((s) => s.from === from)
     }
+
+    async deleteState(from: string): Promise<void> {
+        this.listState = this.listState.filter((s) => s.from !== from)
+    }
 }
 
 export { MemoryDB }

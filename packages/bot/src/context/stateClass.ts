@@ -70,8 +70,14 @@ class SingleState {
      * @param from - The identifier for the context.
      * @returns A function that clears the state.
      */
-    clear = (from: string): (() => boolean) => {
-        return () => this.STATE.delete(from)
+    clear = (from: string): (() => Promise<boolean>) => {
+        return async () => {
+            this.STATE.delete(from)
+            if (this.database && this.database.deleteState) {
+                await this.database.deleteState(from)
+            }
+            return true
+        }
     }
 
     /**

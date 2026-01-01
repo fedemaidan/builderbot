@@ -173,6 +173,11 @@ class JsonFileDB extends MemoryDB {
         await this.saveStateToFile()
     }
 
+    async deleteState(from: string): Promise<void> {
+        await super.deleteState(from)
+        await this.saveStateToFile()
+    }
+
     private async saveStateToFile(): Promise<void> {
         await fsPromises.writeFile(this.pathFileState, JSON.stringify(this.listState, null, 2), 'utf-8')
     }
