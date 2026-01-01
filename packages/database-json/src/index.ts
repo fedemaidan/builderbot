@@ -6,6 +6,7 @@ import type { HistoryEntry, JsonFileAdapterOptions } from './types'
 
 class JsonFileDB extends MemoryDB {
     private pathFile: string
+    private pathFileState: string
     private tempPath: string
     listHistory: HistoryEntry[] = []
     private options: JsonFileAdapterOptions = { filename: 'db.json', debounceTime: 0 }
@@ -23,6 +24,7 @@ class JsonFileDB extends MemoryDB {
         super()
         this.options = { ...this.options, ...options }
         this.pathFile = join(process.cwd(), this.options.filename)
+        this.pathFileState = join(process.cwd(), this.options.filename.replace('.json', '_state.json'))
         this.tempPath = `${this.pathFile}.tmp`
         this.initPromise = this.init()
     }
@@ -49,6 +51,19 @@ class JsonFileDB extends MemoryDB {
                 // Cargar historial existente del archivo
                 const data = await fsPromises.readFile(this.pathFile, 'utf-8')
                 this.listHistory = this.validateJson(data)
+            }
+
+            if (!existsSync(this.pathFileState)) {
+                const parseData = JSON.stringify([], null, 2)
+                await fsPromises.writeFile(this.pathFileState, parseData, 'utf-8')
+                this.listState = []
+            } else {
+                const data = await fsPromises.readFile(this.pathFileState, 'utf-8')
+                try {
+                    this.listState = JSON.parse(data)
+                } catch (e) {
+                    this.listState = []
+                }
             }
         } catch (e) {
             console.error('[JsonFileDB] Error initializing database:', e.message)
@@ -153,6 +168,15 @@ class JsonFileDB extends MemoryDB {
         }
     }
 
+    async saveState(from: string, data: any): Promise<void> {
+        await super.saveState(from, data)
+        await this.saveStateToFile()
+    }
+
+    private async saveStateToFile(): Promise<void> {
+        await fsPromises.writeFile(this.pathFileState, JSON.stringify(this.listState, null, 2), 'utf-8')
+    }
+
     /**
      * Buscar el último mensaje por número
      * @param from
@@ -163,10 +187,7 @@ class JsonFileDB extends MemoryDB {
             return undefined
         }
 
-        const result = history
-            .slice()
-            .reverse()
-            .filter((i) => !!i.keyword)
+        const result = history.slice().reverse()
         return result.find((a) => a.from === from)
     }
 

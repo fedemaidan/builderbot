@@ -43,6 +43,14 @@ class MongoAdapter extends MemoryDB {
         }
         await this.db.collection('history').insertOne(ctxWithDate)
     }
+
+    async saveState(from: string, data: any): Promise<void> {
+        await this.db.collection('state').updateOne({ from }, { $set: { from, ...data } }, { upsert: true })
+    }
+
+    async getState(from: string): Promise<any> {
+        return await this.db.collection('state').findOne({ from })
+    }
 }
 
 export { MongoAdapter }

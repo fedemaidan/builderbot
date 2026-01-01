@@ -7,13 +7,16 @@ const METHOD = 'aes-256-cbc'
 const key = createHash('sha512').update(SALT_KEY).digest('hex').substring(0, 32)
 const encryptionIV = createHash('sha512').update(SALT_IV).digest('hex').substring(0, 16)
 
+let refCounter = 0
+
 /**
  * Genera un UUID único con posibilidad de tener un prefijo.
  * @param prefix Prefijo opcional para el UUID.
  * @returns El UUID generado.
  */
 const generateRef = (prefix?: string): string => {
-    const id = randomUUID()
+    refCounter++
+    const id = `${refCounter}`
     return prefix ? `${prefix}_${id}` : id
 }
 

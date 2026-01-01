@@ -38,7 +38,7 @@ class CoreClass<P extends ProviderClass = any, D extends MemoryDB = any> extends
     database: D
     provider: P
     queuePrincipal: Queue<unknown>
-    stateHandler = new SingleState()
+    stateHandler: SingleState
     globalStateHandler = new GlobalState()
     dynamicBlacklist = new BlackList()
     generalArgs: GeneralArgs & { host?: string } = {
@@ -65,6 +65,7 @@ class CoreClass<P extends ProviderClass = any, D extends MemoryDB = any> extends
         super()
         this.flowClass = _flow
         this.database = _database
+        this.stateHandler = new SingleState(_database)
         this.provider = _provider
         this.generalArgs = { ...this.generalArgs, ..._args }
 
@@ -137,7 +138,25 @@ class CoreClass<P extends ProviderClass = any, D extends MemoryDB = any> extends
         if (!body) return
 
         const prevMsg = await this.database.getPrevByNumber(from)
-        const refToContinue = this.flowClass.findBySerialize(prevMsg?.refSerialize)
+        let refToContinue = this.flowClass.findBySerialize(prevMsg?.refSerialize)
+
+        if (!refToContinue && prevMsg?.ref) {
+            refToContinue = this.flowClass.findSerializeByRef(prevMsg.ref)
+        }
+        if (!refToContinue && prevMsg?.keyword) {
+            refToContinue = this.flowClass.findSerializeByKeyword(prevMsg.keyword)
+        }
+
+        console.log(`[DEBUG] from: ${from}`)
+        console.log(`[DEBUG] prevMsg:`, prevMsg)
+        console.log(`[DEBUG] refToContinue:`, refToContinue)
+
+        if (!this.stateHandler.getMyState(from)()) {
+            const savedState = await this.database.getState(from)
+            if (savedState) {
+                this.stateHandler.load(from, savedState)
+            }
+        }
 
         if (prevMsg?.ref) {
             delete prevMsg._id
@@ -180,7 +199,7 @@ class CoreClass<P extends ProviderClass = any, D extends MemoryDB = any> extends
             },
             index = 0
         ) => {
-            const body = typeof payload === 'string' ? payload : payload?.body ?? payload?.answer
+            const body = typeof payload === 'string' ? payload : (payload?.body ?? payload?.answer)
             const media = payload?.media ?? null
             const buttons = payload?.buttons ?? []
             const capture = payload?.capture ?? false
@@ -376,7 +395,7 @@ class CoreClass<P extends ProviderClass = any, D extends MemoryDB = any> extends
                 flag.fallBack = true
                 await this.sendProviderAndSave(from, {
                     ...prevMsg,
-                    answer: typeof message === 'string' ? message : message?.body ?? prevMsg.answer,
+                    answer: typeof message === 'string' ? message : (message?.body ?? prevMsg.answer),
                     options: {
                         ...prevMsg.options,
                         buttons: prevMsg.options?.buttons,

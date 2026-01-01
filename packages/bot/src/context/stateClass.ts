@@ -1,3 +1,5 @@
+import type { MemoryDB } from '../db'
+
 type Context = {
     from: string
 }
@@ -6,8 +8,11 @@ type StateValue = Record<string, any>
 
 class SingleState {
     private STATE: Map<string, StateValue> = new Map()
+    private database: MemoryDB
 
-    constructor() {}
+    constructor(_database: MemoryDB) {
+        this.database = _database
+    }
 
     /**
      * Updates the state for a given context.
@@ -15,13 +20,11 @@ class SingleState {
      * @returns A function that takes a key-value object to update the state.
      */
     updateState = (ctx: Context = { from: '' }): ((keyValue: StateValue) => Promise<void>) => {
-        return (keyValue: StateValue) => {
-            return new Promise((resolve) => {
-                const currentStateByFrom = this.STATE.get(ctx.from) || {}
-                const updatedState = { ...currentStateByFrom, ...keyValue }
-                this.STATE.set(ctx.from, updatedState)
-                resolve()
-            })
+        return async (keyValue: StateValue) => {
+            const currentStateByFrom = this.STATE.get(ctx.from) || {}
+            const updatedState = { ...currentStateByFrom, ...keyValue }
+            this.STATE.set(ctx.from, updatedState)
+            if (this.database) await this.database.saveState(ctx.from, updatedState)
         }
     }
 
@@ -76,6 +79,10 @@ class SingleState {
      * @returns
      */
     clearAll = (): void => this.STATE.clear()
+
+    load = (from: string, data: StateValue): void => {
+        this.STATE.set(from, data)
+    }
 }
 
 export { SingleState }

@@ -1,5 +1,6 @@
 class MemoryDB {
     public listHistory: any[] = []
+    public listState: any[] = []
 
     /**
      *
@@ -20,6 +21,19 @@ class MemoryDB {
      */
     async save(ctx: any): Promise<void> {
         this.listHistory.push(ctx)
+    }
+
+    async saveState(from: string, data: any): Promise<void> {
+        const stateIndex = this.listState.findIndex((s) => s.from === from)
+        if (stateIndex !== -1) {
+            this.listState[stateIndex] = { ...this.listState[stateIndex], ...data }
+        } else {
+            this.listState.push({ from, ...data })
+        }
+    }
+
+    async getState(from: string): Promise<any> {
+        return this.listState.find((s) => s.from === from)
     }
 }
 
