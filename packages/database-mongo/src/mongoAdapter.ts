@@ -4,6 +4,42 @@ import { MongoClient } from 'mongodb'
 
 import type { History, MongoAdapterCredentials } from './types'
 
+/**
+ * Sanitiza un objeto eliminando referencias circulares y propiedades no serializables
+ */
+function sanitizeForMongo(obj: any, seen = new WeakSet()): any {
+    if (obj === null || obj === undefined) return obj
+    if (typeof obj !== 'object') return obj
+
+    // Detectar referencias circulares
+    if (seen.has(obj)) {
+        return '[Circular Reference]'
+    }
+    seen.add(obj)
+
+    // Manejar arrays
+    if (Array.isArray(obj)) {
+        return obj.map((item) => sanitizeForMongo(item, seen))
+    }
+
+    // Manejar objetos
+    const sanitized: Record<string, any> = {}
+    for (const key of Object.keys(obj)) {
+        try {
+            const value = obj[key]
+            // Ignorar funciones y símbolos
+            if (typeof value === 'function' || typeof value === 'symbol') {
+                continue
+            }
+            sanitized[key] = sanitizeForMongo(value, seen)
+        } catch (e) {
+            // Ignorar propiedades que no se pueden acceder
+            continue
+        }
+    }
+    return sanitized
+}
+
 class MongoAdapter extends MemoryDB {
     db: Db | null = null
     listHistory: History[] = []
@@ -45,7 +81,15 @@ class MongoAdapter extends MemoryDB {
     }
 
     async saveState(from: string, data: any): Promise<void> {
-        await this.db.collection('state').updateOne({ from }, { $set: { from, ...data } }, { upsert: true })
+        try {
+            const sanitizedData = sanitizeForMongo(data)
+            await this.db
+                .collection('state')
+                .updateOne({ from }, { $set: { from, ...sanitizedData } }, { upsert: true })
+        } catch (error) {
+            // No propagar el error para evitar romper el flujo del bot
+            console.error('[MongoAdapter] Error guardando estado (no crítico):', error?.message || error)
+        }
     }
 
     async getState(from: string): Promise<any> {

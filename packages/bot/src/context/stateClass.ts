@@ -24,7 +24,14 @@ class SingleState {
             const currentStateByFrom = this.STATE.get(ctx.from) || {}
             const updatedState = { ...currentStateByFrom, ...keyValue }
             this.STATE.set(ctx.from, updatedState)
-            if (this.database) await this.database.saveState(ctx.from, updatedState)
+            if (this.database) {
+                try {
+                    await this.database.saveState(ctx.from, updatedState)
+                } catch (error) {
+                    // No propagar error de persistencia para no romper el flujo del bot
+                    console.error('[SingleState] Error persistiendo estado (no crítico):', error?.message || error)
+                }
+            }
         }
     }
 

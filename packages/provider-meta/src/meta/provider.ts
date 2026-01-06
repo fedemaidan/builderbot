@@ -42,7 +42,7 @@ class MetaProvider extends ProviderClass<MetaInterface> implements MetaInterface
         writeMyself: 'none',
     }
     public prefixMap = {
-        '549': '54', // ARG prefix
+        // '549': '54', // ARG prefix - REMOVED: Meta API requires '9' for Argentine mobile numbers
         '521': '52', // MEX prefix
     }
 
