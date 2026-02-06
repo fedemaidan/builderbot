@@ -6,6 +6,29 @@ import { processIncomingMessage } from '../utils/processIncomingMsg'
 
 import type { Message, MetaGlobalVendorArgs, IncomingMessage, ContactMeta } from '~/types'
 
+// Cache para evitar procesar mensajes duplicados (retries de Meta)
+const processedMessages = new Map<string, number>()
+const PROCESSED_MSG_TTL = 60000 // 60 segundos de TTL
+const PROCESSED_MSG_MAX_SIZE = 1000 // Máximo de mensajes en cache
+
+function isMessageAlreadyProcessed(messageId: string | undefined): boolean {
+    if (!messageId) return false
+    if (processedMessages.has(messageId)) {
+        return true
+    }
+    processedMessages.set(messageId, Date.now())
+    // Limpiar mensajes viejos periódicamente
+    if (processedMessages.size > PROCESSED_MSG_MAX_SIZE) {
+        const now = Date.now()
+        for (const [id, timestamp] of processedMessages) {
+            if (now - timestamp > PROCESSED_MSG_TTL) {
+                processedMessages.delete(id)
+            }
+        }
+    }
+    return false
+}
+
 /**
  * Class representing MetaCoreVendor, a vendor class for meta core functionality.
  * @extends EventEmitter
@@ -123,9 +146,17 @@ export class MetaCoreVendor extends EventEmitter {
             return
         }
 
+        // Verificar si el mensaje ya fue procesado (retry de Meta)
+        if (isMessageAlreadyProcessed(messageId)) {
+            console.log(`⚠️ [MetaProvider] Mensaje duplicado ignorado: ${messageId}`)
+            res.statusCode = 200
+            res.end('duplicate message ignored')
+            return
+        }
+
         try {
             await Promise.all(
-                messages.map( async (message: any) => {
+                messages.map(async (message: any) => {
                     let contact: ContactMeta
                     if (Array.isArray(contacts)) [contact] = contacts
                     const to = body.entry[0].changes[0].value?.metadata?.display_phone_number

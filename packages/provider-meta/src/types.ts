@@ -111,6 +111,7 @@ export interface Message {
     order?: Order
     id?: string
     caption?: string
+    filename?: string
 }
 
 export interface ParamsIncomingMessage {

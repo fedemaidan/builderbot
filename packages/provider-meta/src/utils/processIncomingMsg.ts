@@ -12,7 +12,7 @@ export const processIncomingMessage = async ({
     jwtToken,
     version,
     numberId,
-    fileData
+    fileData,
 }: ParamsIncomingMessage): Promise<Message> => {
     let responseObj: Message
 
@@ -82,6 +82,8 @@ export const processIncomingMessage = async ({
                 from: message.from,
                 url: documentUrl,
                 fileData,
+                caption: message?.document?.caption,
+                filename: message?.document?.filename,
                 to,
                 body: utils.generateRefProvider('_event_document_'),
                 pushName,

@@ -47,6 +47,7 @@ class MongoAdapter extends MemoryDB {
 
     constructor(_credentials: MongoAdapterCredentials) {
         super()
+        console.log('[MongoAdapter] v1.3.15-alpha.1-fix1 cargado correctamente')
         this.credentials = _credentials
         this.init().then()
     }
