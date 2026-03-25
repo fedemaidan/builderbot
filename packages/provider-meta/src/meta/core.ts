@@ -154,47 +154,56 @@ export class MetaCoreVendor extends EventEmitter {
             return
         }
 
-        try {
+        // Responder 200 INMEDIATAMENTE para que Meta no reintente
+        res.statusCode = 200
+        res.end('OK')
+
+        // Procesar el mensaje de forma asíncrona DESPUÉS de responder
+        setImmediate(async () => {
             await Promise.all(
                 messages.map(async (message: any) => {
-                    let contact: ContactMeta
-                    if (Array.isArray(contacts)) [contact] = contacts
-                    const to = body.entry[0].changes[0].value?.metadata?.display_phone_number
-                    const pushName: string | undefined = contact?.profile?.name ?? 'Unknown'
-                    const fileData =
-                        message?.audio ??
-                        message?.image ??
-                        message?.video ??
-                        message?.document ??
-                        message?.sticker ??
-                        (null as File | undefined)
+                    try {
+                        let contact: ContactMeta
+                        if (Array.isArray(contacts)) [contact] = contacts
+                        const to = body.entry[0].changes[0].value?.metadata?.display_phone_number
+                        const pushName: string | undefined = contact?.profile?.name ?? 'Unknown'
+                        const fileData =
+                            message?.audio ??
+                            message?.image ??
+                            message?.video ??
+                            message?.document ??
+                            message?.sticker ??
+                            (null as File | undefined)
 
-                    const response: Message = await processIncomingMessage({
-                        messageId,
-                        messageTimestamp,
-                        to,
-                        pushName,
-                        message,
-                        jwtToken,
-                        numberId,
-                        version,
-                        fileData,
-                    })
-                    if (response) {
-                        await this.queue.enqueue(() => this.processMessage(response))
+                        const response: Message = await processIncomingMessage({
+                            messageId,
+                            messageTimestamp,
+                            to,
+                            pushName,
+                            message,
+                            jwtToken,
+                            numberId,
+                            version,
+                            fileData,
+                        })
+                        if (response) {
+                            await this.queue.enqueue(() => this.processMessage(response))
+                        }
+                    } catch (error) {
+                        console.error(
+                            `❌ [MetaProvider] Error procesando mensaje ${messageId} de ${message?.from}:`,
+                            error.message || error
+                        )
+                        this.emit('notice', {
+                            title: '🔔  META ALERT  🔔',
+                            instructions: [
+                                `Error procesando msg ${messageId} tipo ${message?.type}: ${error.message || error}`,
+                            ],
+                        })
                     }
                 })
             )
-            res.statusCode = 200
-            res.end('Messages enqueued')
-        } catch (error) {
-            this.emit('notice', {
-                title: '🔔  META ALERT  🔔',
-                instructions: [error.message || 'An error occurred while processing messages.'],
-            })
-            res.writeHead(400, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify({ error: error.message || 'An error occurred while processing messages.' }))
-        }
+        })
     }
 
     /**
