@@ -1060,10 +1060,14 @@ class MetaProvider extends ProviderClass<MetaInterface> implements MetaInterface
      * })
      */
     sendMessageMeta = (body: TextMessageBody): Promise<any> => {
-        return new Promise((resolve) =>
+        return new Promise((resolve, reject) =>
             this.queue.add(async () => {
-                const resp = await this.sendMessageToApi(body)
-                resolve(resp)
+                try {
+                    const resp = await this.sendMessageToApi(body)
+                    resolve(resp)
+                } catch (error) {
+                    reject(error)
+                }
             })
         )
     }
@@ -1092,7 +1096,7 @@ class MetaProvider extends ProviderClass<MetaInterface> implements MetaInterface
             response.data.payload = body
             return response.data
         } catch (error) {
-            return error
+            throw error
         }
     }
 }
