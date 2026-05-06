@@ -366,7 +366,7 @@ describe('#MetaCoreVendor ', () => {
 
             // Assert
             expect(mockRes.statusCode).toBe(200)
-            expect(mockRes.end).toHaveBeenCalledWith('Messages enqueued')
+            expect(mockRes.end).toHaveBeenCalledWith('OK')
         })
     })
 })

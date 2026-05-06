@@ -1086,18 +1086,14 @@ class MetaProvider extends ProviderClass<MetaInterface> implements MetaInterface
      */
     sendMessageToApi = async (body: TextMessageBody): Promise<any> => {
         body.to = this.fixPrefixMetaNumber(body.to)
-        try {
-            const fullUrl = `${URL}/${this.globalVendorArgs.version}/${this.globalVendorArgs.numberId}/messages`
-            const response = await axios.post(fullUrl, body, {
-                headers: {
-                    Authorization: `Bearer ${this.globalVendorArgs.jwtToken}`,
-                },
-            })
-            response.data.payload = body
-            return response.data
-        } catch (error) {
-            throw error
-        }
+        const fullUrl = `${URL}/${this.globalVendorArgs.version}/${this.globalVendorArgs.numberId}/messages`
+        const response = await axios.post(fullUrl, body, {
+            headers: {
+                Authorization: `Bearer ${this.globalVendorArgs.jwtToken}`,
+            },
+        })
+        response.data.payload = body
+        return response.data
     }
 }
 export { MetaProvider }
